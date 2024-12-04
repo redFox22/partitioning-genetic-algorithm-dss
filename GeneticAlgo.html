@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algoritmo Genetico - Number Partitioning</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h3 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #34495e;
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid #bdc3c7;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .visualization {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .subset {
+            width: 48%;
+            background-color: #ecf0f1;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .subset h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .number {
+            display: inline-block;
+            margin: 5px;
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        #generationCount {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>GA for Number Partitioning</h1>
+        <h3>Developed by Marco Lucibelli</h3>
+        <div class="input-group">
+            <label for="numbers">Inserisci numeri:</label>
+            <input type="text" id="numbers" value="1,5,9,4,3,7,2,8">
+        </div>
+        <button onclick="startAlgorithm()">Avvia Algoritmo</button>
+        <div id="generationCount"></div>
+        <div id="generationCountBest"></div>
+        <div class="visualization">
+            <div class="subset" id="subset1">
+                <h3>Sottoinsieme 1</h3>
+            </div>
+            <div class="subset" id="subset2">
+                <h3>Sottoinsieme 2</h3>
+            </div>
+        </div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        let population = [];
+        let bestSolution = null;
+        let generation = 0;
+        let numbers = [];
+
+        function initializePopulation(size) {
+            population = [];
+            for (let i = 0; i < size; i++) {
+                let chromosome = numbers.map(() => Math.random() < 0.5 ? 0 : 1);
+                population.push(chromosome);
+            }
+        }
+
+        function calculateFitness(chromosome) {
+            let sum1 = 0, sum2 = 0;
+            for (let i = 0; i < chromosome.length; i++) {
+                if (chromosome[i] === 0) {
+                    sum1 += numbers[i];
+                } else {
+                    sum2 += numbers[i];
+                }
+            }
+            return Math.abs(sum1 - sum2);
+        }
+
+        function selection() {
+            let totalFitness = population.reduce((sum, chromosome) => sum + 1 / calculateFitness(chromosome), 0);
+            let newPopulation = [];
+
+            for (let i = 0; i < population.length; i++) {
+                let pick = Math.random() * totalFitness;
+                let current = 0;
+                for (let chromosome of population) {
+                    current += 1 / calculateFitness(chromosome);
+                    if (current > pick) {
+                        newPopulation.push(chromosome);
+                        break;
+                    }
+                }
+            }
+
+            population = newPopulation;
+        }
+
+        function crossover() {
+            for (let i = 0; i < population.length; i += 2) {
+                let casuale = Math.random();
+                console.log("Valore di casuale: " + casuale.value);
+                if (casuale < 0.7) {
+                    let point = Math.floor(Math.random() * numbers.length);
+                    let temp = population[i].slice(point);
+                    population[i] = population[i].slice(0, point).concat(population[i + 1].slice(point));
+                    population[i + 1] = population[i + 1].slice(0, point).concat(temp);
+                }
+            }
+        }
+
+        function mutation() {
+            for (let i = 0; i < population.length; i++) {
+                for (let j = 0; j < population[i].length; j++) {
+                    if (Math.random() < 0.01) {
+                        population[i][j] = 1 - population[i][j];
+                    }
+                }
+            }
+        }
+
+        function getBestSolution() {
+            return population.reduce((best, current) =>
+                calculateFitness(current) < calculateFitness(best) ? current : best
+            );
+        }
+
+        function updateVisualization(solution) {
+            const subset1 = document.getElementById('subset1');
+            const subset2 = document.getElementById('subset2');
+            subset1.innerHTML = '<h3>Sottoinsieme 1</h3>';
+            subset2.innerHTML = '<h3>Sottoinsieme 2</h3>';
+            let sum1 = 0, sum2 = 0;
+
+            for (let i = 0; i < solution.length; i++) {
+                const numberElement = document.createElement('div');
+                numberElement.className = 'number';
+                numberElement.textContent = numbers[i];
+
+                if (solution[i] === 0) {
+                    subset1.appendChild(numberElement);
+                    sum1 += numbers[i];
+                } else {
+                    subset2.appendChild(numberElement);
+                    sum2 += numbers[i];
+                }
+            }
+
+            document.getElementById('result').innerHTML = `
+                Differenza: ${Math.abs(sum1 - sum2)}<br>
+                Somma Sottoinsieme 1: ${sum1}<br>
+                Somma Sottoinsieme 2: ${sum2}
+            `;
+            document.getElementById('generationCountBest').textContent = `Generazione best solution: ${generation}`;
+        }
+
+        function updateGen(){
+            document.getElementById('generationCount').textContent = `Generazione: ${generation}`;
+        }
+
+        function startAlgorithm() {
+            numbers = document.getElementById('numbers').value.split(',').map(Number);
+            initializePopulation(2);
+            generation = 0;
+            bestSolution = null;
+
+            function step() {
+                selection();
+                crossover();
+                mutation();
+                generation++;
+
+                let currentBest = getBestSolution();
+                if (!bestSolution || calculateFitness(currentBest) < calculateFitness(bestSolution)) {
+                    bestSolution = currentBest;
+                    updateVisualization(bestSolution);
+                }
+
+                if (generation < 3000 && calculateFitness(bestSolution) > 0) {
+                    updateGen();
+                    requestAnimationFrame(step);
+                }
+            }
+
+            requestAnimationFrame(step);
+        }
+    </script>
+</body>
+
+</html>
